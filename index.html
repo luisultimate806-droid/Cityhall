@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Popayán City Hall & Historic Night Center | The White City</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --gold: #d4af37;
+            --deep-navy: #0a1628;
+            --midnight: #0d1b2a;
+            --lantern: #f4e4bc;
+            --colonial-white: #f8f1e3;
+            --sepia-overlay: rgba(20, 15, 10, 0.75);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--deep-navy);
+            color: var(--colonial-white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        img, video {
+            max-width: 100%;
+        }
+
+        /* Blurred folkloric background */
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(var(--sepia-overlay), var(--sepia-overlay)),
+                url('https://thumb.wikimedia.org/wikipedia/commons/thumb/c/ca/Catedral_%26_Torre_del_Reloj_%28Popayan%29.JPG/960px-Catedral_%26_Torre_del_Reloj_%28Popayan%29.JPG') center/cover no-repeat fixed;
+            z-index: -1;
+            filter: blur(8px) brightness(0.6) contrast(1.2) sepia(0.3);
+            transform: scale(1.05);
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(180deg, rgba(10,15,25,0.95) 0%, rgba(13,27,42,0.7) 100%);
+            border-bottom: 3px solid var(--gold);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            color: var(--gold);
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .logo span {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--lantern);
+            letter-spacing: 4px;
+        }
+
+        nav a {
+            color: var(--colonial-white);
+            text-decoration: none;
+            margin-left: 1.5rem;
+            font-weight: 500;
+            transition: color 0.3s;
+            text-shadow: 0 1px 2px #000;
+        }
+
+        nav a:hover {
+            color: var(--gold);
+        }
+
+        /* Hero */
+        .hero {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            background: rgba(13, 27, 42, 0.85);
+            padding: 3rem;
+            border: 2px solid var(--gold);
+            border-radius: 4px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .hero-content::before {
+            content: '✦ ◆ ✦';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--midnight);
+            color: var(--gold);
+            padding: 0 10px;
+            font-size: 1rem;
+        }
+
+        .hero h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 2.8rem;
+            color: var(--gold);
+            margin-bottom: 1rem;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .hero p {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2rem;
+            color: var(--lantern);
+            font-style: italic;
+        }
+
+        /* GPS map section */
+        .gps-section {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            min-height: 600px;
+            background: #000;
+            border-top: 3px solid var(--gold);
+            border-bottom: 3px solid var(--gold);
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: var(--deep-navy) !important;
+        }
+
+        /* Markers */
+        .custom-marker {
+            background: var(--gold);
+            border: 3px solid #0a1628;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #0a1628;
+            box-shadow: 0 0 15px rgba(212,175,55,0.9);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .custom-marker:hover {
+            transform: scale(1.3);
+        }
+
+        /* GPS card */
+        .gps-card {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            width: 90%;
+            max-width: 650px;
+            background: rgba(13, 27, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            overflow: hidden;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .gps-card.active {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .gps-card-image {
+            width: 40%;
+            min-height: 180px;
+            background: #0a1628;
+            position: relative;
+        }
+
+        .gps-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .gps-card-content {
+            width: 60%;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .gps-card-content h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .gps-card-content p {
+            font-size: 0.85rem;
+            color: var(--colonial-white);
+        }
+
+        .gps-close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .gps-instruction {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 22, 40, 0.85);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--gold);
+            color: var(--lantern);
+            font-size: 0.85rem;
+            z-index: 500;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Other sections */
+        section.content-section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.4rem;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: rgba(13, 27, 42, 0.85);
+            border: 1px solid rgba(212,175,55,0.5);
+            border-radius: 8px;
+            padding: 2rem;
+            transition: transform 0.3s;
+        }
+
+        .info-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold);
+        }
+
+        .info-card h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--gold);
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .section-intro {
+            max-width: 850px;
+            margin: 0 auto 2rem;
+            text-align: center;
+            color: var(--lantern);
+            font-family: 'Playfair Display', serif;
+            font-size: 1.05rem;
+        }
+
+        .history-timeline {
+            max-width: 950px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .history-item {
+            background: rgba(13, 27, 42, 0.88);
+            border-left: 3px solid var(--gold);
+            border-top: 1px solid rgba(212,175,55,0.35);
+            border-right: 1px solid rgba(212,175,55,0.35);
+            border-bottom: 1px solid rgba(212,175,55,0.35);
+            border-radius: 7px;
+            padding: 1.5rem;
+        }
+
+        .history-item strong {
+            display: block;
+            color: var(--gold);
+            font-family: 'Cinzel', serif;
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-card img {
+            display: block;
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .location-panel {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 1.75rem;
+            background: rgba(13, 27, 42, 0.88);
+            border: 1px solid rgba(212,175,55,0.6);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .location-panel h3 {
+            color: var(--gold);
+            font-family: 'Cinzel', serif;
+            margin-bottom: 0.5rem;
+        }
+
+        .location-panel a {
+            display: inline-block;
+            margin-top: 0.8rem;
+            color: var(--lantern);
+            text-decoration: underline;
+        }
+
+        .gallery-caption {
+            color: var(--lantern);
+            font-size: 0.9rem;
+        }
+
+        .ornament {
+            text-align: center;
+            color: var(--gold);
+            font-size: 1.5rem;
+            opacity: 0.7;
+            margin: 2rem 0;
+            letter-spacing: 10px;
+        }
+
+        footer {
+            background: rgba(5, 10, 15, 0.95);
+            border-top: 3px solid var(--gold);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #a89f8f;
+            font-size: 0.9rem;
+        }
+
+        .photo-credits {
+            max-width: 1000px;
+            margin: 1.25rem auto 0;
+            font-size: 0.75rem;
+            line-height: 1.8;
+        }
+
+        .photo-credits a {
+            color: var(--lantern);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            header {
+                padding: 0.75rem 1rem;
+            }
+
+            .header-content {
+                flex-direction: column;
+                justify-content: center;
+                gap: 0.5rem;
+            }
+
+            .logo {
+                font-size: 1.4rem;
+                text-align: center;
+            }
+
+            .logo span {
+                letter-spacing: 0.15em;
+            }
+
+            nav {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 0.25rem 0.5rem;
+                width: 100%;
+            }
+
+            nav a {
+                display: inline-flex;
+                align-items: center;
+                min-height: 44px;
+                margin: 0;
+                padding: 0.35rem 0.5rem;
+            }
+
+            .hero {
+                min-height: 52vh;
+                padding: 2rem 1rem;
+            }
+
+            .hero-content {
+                width: 100%;
+                padding: clamp(1.25rem, 5vw, 2rem);
+            }
+
+            .hero h1 {
+                font-size: clamp(1.8rem, 7vw, 2.2rem);
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .gps-section {
+                height: 72vh;
+                height: 72svh;
+                min-height: 420px;
+                max-height: 680px;
+            }
+
+            .gps-card {
+                flex-direction: column;
+                bottom: max(0.5rem, env(safe-area-inset-bottom));
+                width: calc(100% - 1rem);
+                max-height: calc(100% - 5rem);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+            }
+
+            .gps-card-image {
+                flex: 0 0 auto;
+                width: 100%;
+                height: clamp(110px, 20vh, 150px);
+                min-height: 0;
+            }
+
+            .gps-card-content {
+                flex: 0 0 auto;
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .gps-card-content h3 {
+                padding-right: 1.5rem;
+                font-size: 1.1rem;
+            }
+
+            .gps-card-content p {
+                font-size: 0.9rem;
+            }
+
+            .gps-close-btn {
+                top: 8px;
+                right: 8px;
+            }
+
+            .gps-instruction {
+                top: max(0.5rem, env(safe-area-inset-top));
+                width: calc(100% - 1.5rem);
+                max-width: 24rem;
+                white-space: normal;
+                text-align: center;
+            }
+
+            section.content-section {
+                padding: 3rem 1rem;
+            }
+
+            .section-title {
+                font-size: clamp(1.75rem, 6vw, 2rem);
+            }
+
+            .info-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 1rem;
+            }
+
+            .info-card {
+                padding: 1.25rem;
+            }
+
+            footer {
+                padding: 2rem 1rem;
+            }
+
+            .photo-credits {
+                overflow-wrap: anywhere;
+            }
+
+            .bg-overlay {
+                background-attachment: scroll;
+                filter: blur(4px) brightness(0.6) contrast(1.2) sepia(0.3);
+            }
+        }
+
+        @media (max-width: 420px) {
+            .logo span {
+                font-size: 0.6rem;
+                letter-spacing: 0.1em;
+            }
+
+            .gps-section {
+                min-height: 400px;
+            }
+
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            .gps-section {
+                height: 82vh;
+                height: 82svh;
+                min-height: 300px;
+            }
+
+            .gps-card {
+                max-height: calc(100% - 4rem);
+            }
+
+            .gps-card-image {
+                height: 100px;
+            }
+
+            .hero {
+                min-height: 100svh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-overlay"></div>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">POPAYÁN<span>CITY HALL • NIGHT HERITAGE</span></div>
+
+            <nav>
+                <a href="#map-section">GPS Map</a>
+                <a href="#city-hall">City Hall</a>
+                <a href="#history">History</a>
+                <a href="#architecture">Architecture</a>
+                <a href="#services">Services</a>
+                <a href="#location">Location</a>
+                <a href="#gallery">Gallery</a>
+                <a href="#videos">Videos</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Popayán Night Explorer</h1>
+            <p>Tap the golden markers on the map. The camera will fly to each location and reveal its story.</p>
+        </div>
+    </section>
+
+    <!-- Interactive map -->
+    <section id="map-section" class="gps-section">
+        <div id="map"></div>
+
+        <div class="gps-instruction">
+            📍 Tap a marker to explore the location
+        </div>
+
+        <div class="gps-card" id="gpsCard">
+            <button class="gps-close-btn" onclick="closeGPSCard()">×</button>
+
+            <div class="gps-card-image">
+                <img id="cardImage" alt="Landmark photo" loading="lazy" decoding="async">
+            </div>
+
+            <div class="gps-card-content">
+                <h3 id="cardTitle">Title</h3>
+                <p id="cardText">Information...</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="ornament">✦ ◆ ✦</div>
+
+    <!-- CITY HALL -->
+    <section id="city-hall" class="content-section">
+        <h2 class="section-title">Popayán City Hall</h2>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Location &amp; History</h3>
+                <p>Popayán's Municipal Administrative Center (CAM) is located at Carrera 6 #4-21, in the Historic Center. It is an important public building within the city's protected heritage area.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>Administrative Center</h3>
+                <p>It is the main headquarters of the municipal government, where the Mayor's Office and several secretariats coordinate public programs, services, and projects for the city.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>Nighttime Atmosphere</h3>
+                <p>Its white façades and the nearby historic buildings create a distinctive atmosphere, especially when the streets and monuments are illuminated at night.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 1. HISTORY -->
+    <section id="history" class="content-section">
+        <h2 class="section-title">History of City Hall</h2>
+
+        <p class="section-intro">
+            The current Municipal Administrative Center (CAM) brings together buildings with a long history in Popayán's historic center.
+        </p>
+
+        <div class="history-timeline">
+            <article class="history-item">
+                <strong>17th century</strong>
+                <p>A historical study by the Fundación Universitaria de Popayán, based on the book <em>Muros de Bronce</em>, explains that the original house was built by Captain Pedro de Velasco.</p>
+            </article>
+
+            <article class="history-item">
+                <strong>1707–1792</strong>
+                <p>The same study records that the property was acquired by Governor Baltazar Carlos de Viveros in 1707 and later purchased by the Jesuits from the municipality in 1792.</p>
+            </article>
+
+            <article class="history-item">
+                <strong>1906</strong>
+                <p>After the earthquake of 1906, the building was reconstructed with a neo-colonial appearance and some republican features, especially in its façade, windows, and balconies.</p>
+            </article>
+
+            <article class="history-item">
+                <strong>1983</strong>
+                <p>Following the earthquake of 1983, the municipality acquired most of the properties in the block. Their interiors were connected, helping establish the Municipal Administrative Center known as the CAM.</p>
+            </article>
+        </div>
+    </section>
+
+    <!-- 2. ARCHITECTURE -->
+    <section id="architecture" class="content-section">
+        <h2 class="section-title">Architecture &amp; Heritage</h2>
+
+        <p class="section-intro">
+            The CAM is part of the historic urban landscape of Popayán. Its appearance combines traditional colonial references with later architectural details.
+        </p>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Armasdepedrovelasco.jpg/960px-Armasdepedrovelasco.jpg"
+                     alt="Stone coat of arms in Popayán's municipal palace"
+                     loading="lazy">
+
+                <h3>City Hall Heritage Detail</h3>
+                <p>A carved stone coat of arms associated with Pedro de Velasco is located in the main courtyard of the municipal palace.</p>
+            </div>
+
+            <div class="info-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/Catedral_%26_Torre_del_Reloj_%28Popayan%29.JPG"
+                     alt="Popayán Cathedral and Clock Tower"
+                     loading="lazy">
+
+                <h3>Historic Center</h3>
+                <p>The CAM sits within Popayán's historic center, alongside landmarks such as the Cathedral and Clock Tower.</p>
+            </div>
+
+            <div class="info-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/Iglesia_de_San_Francisco%2C_Popay%C3%A1n_01.jpg"
+                     alt="Historic Church of San Francisco in Popayán"
+                     loading="lazy">
+
+                <h3>Heritage Conservation</h3>
+                <p>The same study identifies the City Hall building under a level of integral conservation. This means that interventions should respect its historic character and important architectural features.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. ADMINISTRATIVE FUNCTIONS -->
+    <section id="services" class="content-section">
+        <h2 class="section-title">Municipal Government &amp; Services</h2>
+
+        <p class="section-intro">
+            The Mayor's Office coordinates local government through different secretariats and offices that work on the needs of the municipality.
+        </p>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Public Administration</h3>
+                <p>The Mayor's Office directs the municipal administration and coordinates plans, programs, projects, and public resources for Popayán.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>Municipal Secretariats</h3>
+                <p>The administration includes areas such as Education, Government, Finance, Health, Infrastructure, Planning, and Transit, among others. Each one handles matters within its area of responsibility.</p>
+            </div>
+
+            <div class="info-card">
+                <h3>Citizen Services</h3>
+                <p>Residents can request information, complete procedures, and submit petitions, complaints, or claims in person or through the municipality's online channels.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. LOCATION AND SURROUNDINGS -->
+    <section id="location" class="content-section">
+        <h2 class="section-title">Location &amp; Surroundings</h2>
+
+        <div class="location-panel">
+            <h3>Popayán Municipal Administrative Center (CAM)</h3>
+
+            <p><strong>Address:</strong> Carrera 6 #4-21, Historic Center, Popayán, Cauca, Colombia.</p>
+
+            <p>
+                The map above places City Hall at the center and shows nearby reference points such as the Cathedral Basilica, Clock Tower, Parque Caldas, Church of San Francisco, and Humilladero Bridge. Select a golden marker to see its information.
+            </p>
+
+            <a href="https://www.openstreetmap.org/?mlat=2.4416&amp;mlon=-76.6060#map=18/2.4416/-76.6060"
+               target="_blank"
+               rel="noopener noreferrer">
+                Open City Hall location in OpenStreetMap
+            </a>
+        </div>
+    </section>
+
+    <!-- 5. GALLERY -->
+    <section id="gallery" class="content-section">
+        <h2 class="section-title">City Hall &amp; Night Heritage Gallery</h2>
+
+        <p class="section-intro">
+            A selection of views of the municipal building and nearby landmarks, showing how the historic center changes from day to night.
+        </p>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Armasdepedrovelasco.jpg/960px-Armasdepedrovelasco.jpg"
+                     alt="Stone coat of arms in Popayán's municipal palace"
+                     loading="lazy">
+
+                <h3>City Hall Heritage Detail</h3>
+                <p class="gallery-caption">A carved stone coat of arms in the main courtyard of the municipal palace.</p>
+            </div>
+
+            <div class="info-card">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Catedral_Bas%C3%ADlica_Metropolitana_de_Nuestra_Se%C3%B1ora_de_la_Asunci%C3%B3n%2C_Popay%C3%A1n_03.jpg"
+                     alt="Cathedral Basilica and Clock Tower illuminated at night"
+                     loading="lazy">
+
+                <h3>Historic Center at Night</h3>
+                <p class="gallery-caption">The Cathedral Basilica and Clock Tower illuminated after sunset.</p>
+            </div>
+
+            <div class="info-card">
+                <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Popay%C3%A1n_Parque_Caldas.jpg/960px-Popay%C3%A1n_Parque_Caldas.jpg"
+                     alt="Parque Caldas on a sunny day"
+                     loading="lazy">
+
+                <h3>Parque Caldas</h3>
+                <p class="gallery-caption">The public square surrounded by historic buildings in central Popayán.</p>
+            </div>
+
+            <div class="info-card">
+                <img src="https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Iglesia_de_San_Francisco%2C_Popay%C3%A1n_01.jpg/960px-Iglesia_de_San_Francisco%2C_Popay%C3%A1n_01.jpg"
+                     alt="Church of San Francisco in Popayán"
+                     loading="lazy">
+
+                <h3>Church of San Francisco</h3>
+                <p class="gallery-caption">A view of one of Popayán's best-known historic churches.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="videos" class="content-section">
+        <h2 class="section-title">Videos of Popayán</h2>
+        <p class="section-intro">Videos are omitted until distribution rights can be verified.</p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p style="color: var(--gold); font-family: 'Cinzel', serif; font-size: 1.1rem; margin-bottom: 0.5rem;">
+            POPAYÁN • CITY HALL & HISTORIC CENTER
+        </p>
+
+        <p>Interactive night experience in Colombia's White City</p>
+
+        <p class="photo-credits">
+            Photo credits (source file, author, and license; images are displayed with CSS resizing/cropping where needed):
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Catedral_%26_Torre_del_Reloj_(Popayan).JPG" target="_blank" rel="noopener noreferrer">Catedral &amp; Torre del Reloj — Laurian Verre</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Catedral_Bas%C3%ADlica_Metropolitana_de_Nuestra_Se%C3%B1ora_de_la_Asunci%C3%B3n,_Popay%C3%A1n_01.jpg" target="_blank" rel="noopener noreferrer">Cathedral Basilica — Bernard Gagnon</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Clock_tower_of_Popay%C3%A1n.jpg" target="_blank" rel="noopener noreferrer">Clock Tower — Bernard Gagnon</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Popay%C3%A1n_Parque_Caldas.jpg" target="_blank" rel="noopener noreferrer">Parque Caldas — Hernan Vanegas</a>
+            (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Iglesia_de_San_Francisco,_Popay%C3%A1n_01.jpg" target="_blank" rel="noopener noreferrer">Church of San Francisco — Bernard Gagnon</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Grandioso_Puente_del_humilladero.jpg" target="_blank" rel="noopener noreferrer">Humilladero Bridge — Isabela Muñoz</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Catedral_Bas%C3%ADlica_Metropolitana_de_Nuestra_Se%C3%B1ora_de_la_Asunci%C3%B3n,_Popay%C3%A1n_03.jpg" target="_blank" rel="noopener noreferrer">Cathedral and Clock Tower at night — Bernard Gagnon</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+            <br>
+            <a href="https://commons.wikimedia.org/wiki/File:Armasdepedrovelasco.jpg" target="_blank" rel="noopener noreferrer">Stone coat of arms at the municipal palace — Diego Mera</a>
+            (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>).
+        </p>
+
+        <p class="photo-credits">
+            Text and fact references:
+
+            <a href="https://fupvirtual.edu.co/repositorio/files/original/e4c3fb48bfeb08c8d6bac63df8f35ed24621a857.pdf" target="_blank" rel="noopener noreferrer">
+                Fundación Universitaria de Popayán – architectural study of the CAM
+            </a>,
+
+            <a href="https://www.popayan.gov.co/NuestraAlcaldia/Paginas/Unidades-Administrativas-e-Instancias-de-Gestion-.aspx" target="_blank" rel="noopener noreferrer">
+                Alcaldía de Popayán – administrative departments
+            </a>, and
+
+            <a href="https://popayan.gov.co/Ciudadanos/Paginas/Contactenos.aspx" target="_blank" rel="noopener noreferrer">
+                official citizen contact information
+            </a>.
+        </p>
+
+        <p class="photo-credits">
+            Map data:
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors (ODbL)</a>.
+            Map library:
+            <a href="https://leafletjs.com/" target="_blank" rel="noopener noreferrer">Leaflet</a>.
+            Web fonts:
+            <a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Google Fonts</a> (Cinzel, Playfair Display, and Roboto).
+        </p>
+    </footer>
+
+    <!-- LEAFLET MAP -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // 1. Initialize map
+        const map = L.map('map', {
+            center: [2.4416, -76.6060],
+            zoom: 17,
+            zoomControl: false,
+            attributionControl: true,
+            zoomAnimation: true
+        });
+
+        // The base map requires an internet connection.
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        L.control.zoom({
+            position: 'topright'
+        }).addTo(map);
+
+        map.whenReady(() => requestAnimationFrame(() => map.invalidateSize({ pan: false })));
+
+        const refreshMapSize = () => map.invalidateSize({ pan: false });
+
+        window.addEventListener('resize', refreshMapSize);
+        window.addEventListener('orientationchange', refreshMapSize);
+
+        if ('ResizeObserver' in window) {
+            new ResizeObserver(refreshMapSize).observe(document.getElementById('map'));
+        }
+
+        // 2. Places in Popayán
+        const places = [
+            {
+                name: "City Hall",
+                lat: 2.4416,
+                lng: -76.6060,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Armasdepedrovelasco.jpg/960px-Armasdepedrovelasco.jpg",
+                info: "The Municipal Administrative Center (CAM), headquarters of the local government, located at Carrera 6 #4-21 in Popayán's historic center."
+            },
+            {
+                name: "Cathedral Basilica",
+                lat: 2.4414,
+                lng: -76.6066,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/eb/Catedral_Bas%C3%ADlica_Metropolitana_de_Nuestra_Se%C3%B1ora_de_la_Asunci%C3%B3n%2C_Popay%C3%A1n_01.jpg/960px-Catedral_Bas%C3%ADlica_Metropolitana_de_Nuestra_Se%C3%B1ora_de_la_Asunci%C3%B3n%2C_Popay%C3%A1n_01.jpg",
+                info: "Its white neoclassical façade is one of the city's most iconic sights."
+            },
+            {
+                name: "Clock Tower",
+                lat: 2.4420,
+                lng: -76.6064,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d8/Clock_tower_of_Popay%C3%A1n.jpg/960px-Clock_tower_of_Popay%C3%A1n.jpg",
+                info: "Nicknamed 'the nose of Popayán.' Built in the 17th century, it is the most recognizable landmark in Parque Caldas."
+            },
+            {
+                name: "Parque Caldas",
+                lat: 2.4418,
+                lng: -76.6065,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Popay%C3%A1n_Parque_Caldas.jpg/960px-Popay%C3%A1n_Parque_Caldas.jpg",
+                info: "The social and geographic heart of the city, surrounded by the Cathedral, City Hall, and the Clock Tower."
+            },
+            {
+                name: "Church of San Francisco",
+                lat: 2.4428,
+                lng: -76.6072,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Iglesia_de_San_Francisco%2C_Popay%C3%A1n_01.jpg/960px-Iglesia_de_San_Francisco%2C_Popay%C3%A1n_01.jpg",
+                info: "Known for its impressive Baroque architecture, the church plays a central role in Holy Week processions."
+            },
+            {
+                name: "Humilladero Bridge",
+                lat: 2.4455,
+                lng: -76.6085,
+                img: "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/4d/Grandioso_Puente_del_humilladero.jpg/960px-Grandioso_Puente_del_humilladero.jpg",
+                info: "A historic 19th-century bridge whose white arches make it one of the city's most photographed landmarks."
+            }
+        ];
+
+        // 3. Open information card
+        function openGPSCard(place) {
+            document.getElementById('cardTitle').textContent = place.name;
+            document.getElementById('cardText').textContent = place.info;
+
+            const image = document.getElementById('cardImage');
+            image.src = place.img;
+            image.alt = place.name;
+
+            document.getElementById('gpsCard').classList.add('active');
+        }
+
+        // 4. Close information card
+        function closeGPSCard() {
+            document.getElementById('gpsCard').classList.remove('active');
+
+            // Return to the main location
+            map.flyTo([2.4416, -76.6060], 17, {
+                duration: 1.5
+            });
+        }
+
+        // 5. Create map markers
+        places.forEach((place, index) => {
+            const icon = L.divIcon({
+                className: 'custom-div-icon',
+
+                html: index === 0
+                    ? '<div class="custom-marker" title="Main location">★</div>'
+                    : `<div class="custom-marker">${index + 1}</div>`,
+
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            const marker = L.marker([place.lat, place.lng], {
+                icon: icon,
+                title: place.name
+            }).addTo(map);
+
+            // Fly to the selected location
+            marker.on('click', function() {
+                openGPSCard(place);
+
+                map.flyTo([place.lat - 0.0002, place.lng], 18, {
+                    duration: 1.5,
+                    easeLinearity: 0.25
+                });
+            });
+        });
+
+        // Close the card when the map is tapped
+        map.on('click', function() {
+            closeGPSCard();
+        });
+    </script>
+</body>
+</html>
